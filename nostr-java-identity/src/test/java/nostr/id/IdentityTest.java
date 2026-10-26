@@ -145,4 +145,32 @@ public class IdentityTest {
 
     Assertions.assertThrows(SigningException.class, () -> identity.sign(signable));
   }
+
+  @Test
+  // Verifies that Identity satisfies the IIdentity interface
+  public void testIdentityImplementsIIdentity() {
+    Identity identity = Identity.generateRandomIdentity();
+    IIdentity iIdentity = identity;
+    Assertions.assertNotNull(iIdentity.getPublicKey());
+  }
+
+  @Test
+  // Verifies that computeSharedSecret is accessible via IIdentity
+  public void testIIdentityComputeSharedSecret() {
+    IIdentity identity = Identity.generateRandomIdentity();
+    Identity other = Identity.generateRandomIdentity();
+    byte[] sharedSecret = identity.computeSharedSecret(other.getPublicKey());
+    Assertions.assertNotNull(sharedSecret);
+    Assertions.assertEquals(32, sharedSecret.length);
+  }
+
+  @Test
+  // Verifies that computeSharedSecret is symmetric: A.shared(B) == B.shared(A)
+  public void testComputeSharedSecretSymmetry() {
+    Identity alice = Identity.generateRandomIdentity();
+    Identity bob = Identity.generateRandomIdentity();
+    byte[] aliceToBob = alice.computeSharedSecret(bob.getPublicKey());
+    byte[] bobToAlice = bob.computeSharedSecret(alice.getPublicKey());
+    Assertions.assertArrayEquals(aliceToBob, bobToAlice);
+  }
 }

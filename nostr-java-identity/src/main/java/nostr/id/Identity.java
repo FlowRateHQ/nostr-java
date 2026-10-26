@@ -8,6 +8,7 @@ import nostr.base.ISignable;
 import nostr.base.PrivateKey;
 import nostr.base.PublicKey;
 import nostr.base.Signature;
+import nostr.crypto.nip44.EncryptedPayloads;
 import nostr.crypto.schnorr.Schnorr;
 import nostr.crypto.schnorr.SchnorrException;
 import nostr.util.NostrUtil;
@@ -25,7 +26,7 @@ import java.util.function.Consumer;
  */
 @Slf4j
 @Data
-public class Identity {
+public class Identity implements IIdentity {
 
   @ToString.Exclude private final PrivateKey privateKey;
 
@@ -73,6 +74,7 @@ public class Identity {
    * @return the derived public key
    * @throws IllegalStateException if public key generation fails
    */
+  @Override
   public PublicKey getPublicKey() {
     if (cachedPublicKey == null) {
       try {
@@ -98,6 +100,7 @@ public class Identity {
    * @throws IllegalStateException if the SHA-256 algorithm is unavailable
    * @throws SigningException if the signature cannot be created
    */
+  @Override
   public Signature sign(@NonNull ISignable signable) {
     try {
       final Signature signature = new Signature();
@@ -122,6 +125,18 @@ public class Identity {
       log.error("Signing failed", ex);
       throw new SigningException("Failed to sign with provided key", ex);
     }
+  }
+
+  /**
+   * Computes the NIP-44 conversation key with the given recipient via ECDH + HKDF-Extract.
+   *
+   * @param recipientPubKey the recipient's public key
+   * @return 32-byte conversation key
+   */
+  @Override
+  public byte[] computeSharedSecret(@NonNull PublicKey recipientPubKey) {
+    return EncryptedPayloads.getConversationKey(
+        NostrUtil.bytesToHex(privateKey.getRawData()), "02" + recipientPubKey.toHexString());
   }
 
   private byte[] generateAuxRand() {
